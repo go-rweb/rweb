@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/rweb"
 )
 
 func main() {

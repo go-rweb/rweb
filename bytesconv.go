@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/rweb/consts"
 )
 
 // AppendHTMLEscape appends html-escaped s to dst and returns the extended dst.

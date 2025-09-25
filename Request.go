@@ -7,8 +7,8 @@ import (
 	"mime"
 	"mime/multipart"
 
-	"github.com/rohanthewiz/rweb/consts"
-	"github.com/rohanthewiz/rweb/core/rtr"
+	"github.com/go-rweb/rweb/consts"
+	"github.com/go-rweb/rweb/core/rtr"
 )
 
 // ItfRequest is the Request interface

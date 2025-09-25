@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/rweb"
 )
 
 // Message represents a WebSocket message structure for our chat application

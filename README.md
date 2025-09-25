@@ -22,7 +22,7 @@ Thanks and credit to Akyoto, especially for the radix tree!
 ## Installation
 
 ```shell
-go get -u github.com/rohanthewiz/rweb
+go get -u github.com/go-rweb/rweb
 ```
 
 ## Usage
@@ -39,7 +39,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/rweb"
 )
 
 func main() {

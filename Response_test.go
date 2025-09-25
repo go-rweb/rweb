@@ -6,9 +6,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/rohanthewiz/assert"
-	"github.com/rohanthewiz/rweb"
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/assert"
+	"github.com/go-rweb/rweb"
+	"github.com/go-rweb/rweb/consts"
 )
 
 func TestWrite(t *testing.T) {

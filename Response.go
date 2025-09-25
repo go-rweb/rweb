@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/rweb/consts"
 )
 
 // Response is the interface for an HTTP response.

@@ -1,7 +1,7 @@
 package rtr
 
 import (
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/rweb/consts"
 )
 
 // RadixRouter is a high-performance router using radix trees (compressed tries) for route matching.

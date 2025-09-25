@@ -3,7 +3,7 @@ package rweb
 import (
 	"strings"
 
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/rweb/consts"
 )
 
 // isValidRequestMethod returns true if the given string is a valid HTTP request method.

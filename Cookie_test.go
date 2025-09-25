@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rohanthewiz/assert"
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/assert"
+	"github.com/go-rweb/rweb"
 )
 
 // TestSetCookie tests basic cookie setting functionality

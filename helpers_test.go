@@ -3,7 +3,7 @@ package rweb_test
 import (
 	"testing"
 
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/rweb"
 )
 
 func TestGenerateRandString(t *testing.T) {

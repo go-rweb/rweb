@@ -3,7 +3,7 @@ package rweb
 import (
 	"testing"
 
-	"github.com/rohanthewiz/assert"
+	"github.com/go-rweb/assert"
 )
 
 func TestContextData(t *testing.T) {
@@ -42,7 +42,7 @@ func TestContextData(t *testing.T) {
 		"name":  "John",
 		"admin": true,
 	})
-	
+
 	user := ctx.Get("user").(map[string]any)
 	assert.Equal(t, 1, user["id"])
 	assert.Equal(t, "John", user["name"])

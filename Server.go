@@ -18,9 +18,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/rohanthewiz/element"
-	"github.com/rohanthewiz/rweb/consts"
-	"github.com/rohanthewiz/rweb/core/rtr"
+	"github.com/go-element/element"
+	"github.com/go-rweb/rweb/consts"
+	"github.com/go-rweb/rweb/core/rtr"
 )
 
 type ServerOptions struct {

@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-rweb/rweb"
 )
 
 func main() {

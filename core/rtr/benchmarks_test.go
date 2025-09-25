@@ -3,9 +3,9 @@ package rtr_test
 import (
 	"testing"
 
-	"github.com/rohanthewiz/rweb/consts"
-	"github.com/rohanthewiz/rweb/core/rtr"
-	"github.com/rohanthewiz/rweb/core/rtr/testdata"
+	"github.com/go-rweb/rweb/consts"
+	"github.com/go-rweb/rweb/core/rtr"
+	"github.com/go-rweb/rweb/core/rtr/testdata"
 )
 
 func BenchmarkBlog(b *testing.B) {

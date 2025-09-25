@@ -3,7 +3,7 @@ package rtr
 import (
 	"fmt"
 
-	"github.com/rohanthewiz/rweb/consts"
+	"github.com/go-rweb/rweb/consts"
 )
 
 // HashRouter is a fast lookup router that uses hash maps for O(1) route matching.
@@ -12,10 +12,10 @@ import (
 // routes where parameter extraction is not needed.
 //
 // Design considerations:
-// - Each HTTP method has its own hash map to avoid key collisions
-// - Pre-allocated map capacities optimize for typical REST API patterns
-//   (more GET routes than other methods)
-// - Generic type T allows storing any handler type (functions, structs, etc.)
+//   - Each HTTP method has its own hash map to avoid key collisions
+//   - Pre-allocated map capacities optimize for typical REST API patterns
+//     (more GET routes than other methods)
+//   - Generic type T allows storing any handler type (functions, structs, etc.)
 type HashRouter[T any] struct {
 	get     map[string]T
 	post    map[string]T

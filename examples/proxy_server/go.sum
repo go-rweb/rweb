@@ -1,5 +1,6 @@
 github.com/rohanthewiz/element v0.5.4 h1:GuUkF8/y39opotrVYrfrnygCAVVpyF/aPXyKNJKZnd0=
 github.com/rohanthewiz/element v0.5.4/go.mod h1:cA57S9UGRSaWrMmGC1M+8QCQw/y8kgODiBB0KEwIyzo=
+github.com/rohanthewiz/element v0.5.5-0.20250730211845-a097f2feeb11/go.mod h1:cA57S9UGRSaWrMmGC1M+8QCQw/y8kgODiBB0KEwIyzo=
 github.com/rohanthewiz/rweb v0.1.14 h1:wmUT0Ae9EC0y0xoOvioYlhdVp6cvZWKtwKeVL+0Fs68=
 github.com/rohanthewiz/rweb v0.1.14/go.mod h1:Ye+1p+Emvyp3TvpmqPWUrTaLWPBbsc4F5gvfI4dz2CI=
 github.com/rohanthewiz/rweb v0.1.15-0.20250627103250-2193106caf44 h1:rH18Baa7fc8p9IihJXUJv2re5vvwuLLBKPiA1dOUrtM=

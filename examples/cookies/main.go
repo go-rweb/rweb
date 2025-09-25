@@ -9,8 +9,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/rohanthewiz/element"
-	"github.com/rohanthewiz/rweb"
+	"github.com/go-element/element"
+	"github.com/go-rweb/rweb"
 )
 
 // simple in-memory session store (use Redis or similar in production)

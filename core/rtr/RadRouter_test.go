@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rohanthewiz/assert"
-	"github.com/rohanthewiz/rweb/consts"
-	"github.com/rohanthewiz/rweb/core/rtr"
-	"github.com/rohanthewiz/rweb/core/rtr/testdata"
+	"github.com/go-rweb/assert"
+	"github.com/go-rweb/rweb/consts"
+	"github.com/go-rweb/rweb/core/rtr"
+	"github.com/go-rweb/rweb/core/rtr/testdata"
 )
 
 func TestHello(t *testing.T) {
