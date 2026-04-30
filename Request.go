@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mime"
 	"mime/multipart"
+	"strings"
 
 	"github.com/go-rweb/rweb/consts"
 	"github.com/go-rweb/rweb/core/rtr"
@@ -16,6 +17,7 @@ type ItfRequest interface {
 	// Headers returns the request headers.
 	Headers() []Header
 	// Header returns the header value for the given key.
+	// Performs case-sensitive match first, then falls back to lowercase match if not found.
 	Header(string) string
 	Host() string
 	// Method returns the HTTP method of the request
@@ -59,24 +61,29 @@ type request struct {
 	multipartForm         *multipart.Form
 	multipartFormBoundary string
 
-	queryArgs       Args
-	parsedQueryArgs bool
+	queryArgs Args
 
 	postArgs       Args
 	parsedPostArgs bool
 }
 
 // Header returns the header value for the given key.
+// Performs case-sensitive match first (priority), then falls back to lowercase match if not found.
 func (req *request) Header(key string) string {
 	for _, header := range req.headers {
+		// Give priority to case-sensitive match
 		if header.Key == key {
+			return header.Value
+		}
+		// Otherwise, try lowercase match
+		if header.Key == strings.ToLower(key) {
 			return header.Value
 		}
 	}
 	return ""
 }
 
-// Headers returns the request headers.
+// Headers returns all the request headers.
 func (req *request) Headers() []Header {
 	return req.headers
 }
@@ -186,8 +193,6 @@ func (req *request) ParseMultipartForm() error {
 		return err
 	}
 
-	fmt.Println("**-> params", params)
-
 	boundary, ok := params["boundary"]
 	if !ok {
 		return fmt.Errorf("no boundary found in multipart form data")
@@ -237,7 +242,6 @@ func (req *request) FormValue(key string) string {
 		if values := req.multipartForm.Value[key]; len(values) > 0 {
 			return values[0]
 		}
-		fmt.Printf("** req.multipartForm.Value ->  %v\n", req.multipartForm.Value)
 	}
 	return req.GetPostValue(key)
 }

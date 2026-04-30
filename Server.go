@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -50,12 +51,127 @@ type URLOptions struct {
 	KeepTrailingSlashes bool
 }
 
+// ServerOption is a functional option for configuring a Server.
+type ServerOption func(*ServerOptions)
+
+// WithAddress sets the non-TLS listen address for the server.
+// When UseTLS is true, this is the address for the HTTP server which will redirect to the HTTPS server.
+// TCP addresses can be port only or address only in which case a high port is chosen.
+// Example: WithAddress(":8080")
+func WithAddress(addr string) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.Address = addr
+	}
+}
+
+// WithTLS configures TLS/HTTPS for the server.
+// Example: WithTLS(":8443", "cert.pem", "key.pem")
+func WithTLS(tlsAddr, certFile, keyFile string) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.TLS = TLSCfg{
+			UseTLS:   true,
+			TLSAddr:  tlsAddr,
+			CertFile: certFile,
+			KeyFile:  keyFile,
+		}
+	}
+}
+
+// WithTLSConfig sets a custom TLS configuration.
+func WithTLSConfig(cfg TLSCfg) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.TLS = cfg
+	}
+}
+
+// WithVerbose enables verbose logging for the server.
+func WithVerbose() ServerOption {
+	return func(opts *ServerOptions) {
+		opts.Verbose = true
+	}
+}
+
+// WithDebug enables debug mode for the server.
+func WithDebug() ServerOption {
+	return func(opts *ServerOptions) {
+		opts.Debug = true
+	}
+}
+
+// WithDebugRequestContext enables debug logging for request context.
+func WithDebugRequestContext() ServerOption {
+	return func(opts *ServerOptions) {
+		opts.DebugRequestContext = true
+	}
+}
+
+// WithKeepTrailingSlashes configures whether to keep trailing slashes in URL paths.
+func WithKeepTrailingSlashes() ServerOption {
+	return func(opts *ServerOptions) {
+		opts.URLOptions.KeepTrailingSlashes = true
+	}
+}
+
+// WithReadyChan sets a channel that will receive a signal when the server is ready to accept connections.
+// The channel should be buffered with capacity of at least 1 to avoid blocking.
+// Example: readyCh := make(chan struct{}, 1); WithReadyChan(readyCh)
+func WithReadyChan(ch chan struct{}) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.ReadyChan = ch
+	}
+}
+
+// WithCookie sets server-wide default cookie configuration.
+// Example: WithCookie(rweb.CookieConfig{HttpOnly: true, SameSite: rweb.SameSiteLaxMode})
+func WithCookie(cfg CookieConfig) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.Cookie = cfg
+	}
+}
+
+// WithSSEConfig sets the SSE (Server-Sent Events) configuration.
+func WithSSEConfig(cfg SSECfg) ServerOption {
+	return func(opts *ServerOptions) {
+		opts.SSECfg = cfg
+	}
+}
+
+// WithSSESendConnectedEvent configures whether to send a "Connected" event to SSE clients.
+func WithSSESendConnectedEvent() ServerOption {
+	return func(opts *ServerOptions) {
+		opts.SSECfg.SendConnectedEvent = true
+	}
+}
+
+// WithOptions creates a ServerOption from a ServerOptions struct.
+// This is provided for backwards compatibility with the old configuration style.
+// Example: WithOptions(ServerOptions{Address: ":8080", Verbose: true})
+func WithOptions(serverOpts ServerOptions) ServerOption {
+	return func(opts *ServerOptions) {
+		// Copy fields individually to avoid issues with channel copying
+		opts.Address = serverOpts.Address
+		opts.TLS = serverOpts.TLS
+		opts.Verbose = serverOpts.Verbose
+		opts.Debug = serverOpts.Debug
+		opts.DebugRequestContext = serverOpts.DebugRequestContext
+		opts.URLOptions = serverOpts.URLOptions
+		opts.ReadyChan = serverOpts.ReadyChan
+		opts.Cookie = serverOpts.Cookie
+		opts.SSECfg = serverOpts.SSECfg
+	}
+}
+
 // SSEvent when received from a source channel will set the Type into the event return to the client,
 // otherwise the Type will be set from whatever is in the context, set by SetupSSE() or SSEHandler()
 type SSEvent struct {
 	Type string // or event name
 	Data interface{}
 }
+
+// sseKeepalive is a sentinel type sent by SSEHub's heartbeat goroutine.
+// When sendSSE encounters this value, it writes an SSE comment (`:keepalive\n\n`)
+// which keeps the connection alive without triggering EventSource's onmessage.
+type sseKeepalive struct{}
 
 type TLSCfg struct {
 	TLSAddr  string // [Port] to listen on for TLS
@@ -75,27 +191,32 @@ type Server struct {
 	listenAddr   string // the actual listen address used by net.Listen
 }
 
-// NewServer creates a new HTTP server.
+// NewServer creates a new HTTP server with an optional ServerOptions struct.
+// Example:
+//
+//	s := rweb.NewServer(rweb.ServerOptions{
+//	    Address: ":8080",
+//	    Verbose: true,
+//	})
+//
+// Or without options for defaults:
+//
+//	s := rweb.NewServer()
 func NewServer(options ...ServerOptions) *Server {
 	radRtr := &rtr.RadixRouter[Handler]{}
 	hashRtr := rtr.NewHashRouter[Handler]()
 
+	// Initialize with default options
 	opts := ServerOptions{}
-	if len(options) == 1 {
-		// Not sure why doing this  (opts := options[0]) instead of individually setting hangs
-		// likely something to do with copy of the ready channel
 
-		opts.Verbose = options[0].Verbose // Verbose
-		opts.Debug = options[0].Debug
-		opts.TLS = options[0].TLS
-		opts.Address = options[0].Address
-		opts.Cookie = options[0].Cookie
+	// Apply options if provided
+	if len(options) > 0 {
+		opts = options[0]
+	}
 
-		// Ready Channel
-		if options[0].ReadyChan != nil && cap(options[0].ReadyChan) < 1 && opts.Verbose {
-			fmt.Println("Ready channel capacity should be at least 1, or we may hang")
-		}
-		opts.ReadyChan = options[0].ReadyChan // Assign even if it is nil as we will do nil check on use
+	// Validate ready channel capacity
+	if opts.ReadyChan != nil && cap(opts.ReadyChan) < 1 && opts.Verbose {
+		fmt.Println("Ready channel capacity should be at least 1, or we may hang")
 	}
 
 	s := &Server{
@@ -146,6 +267,28 @@ func NewServer(options ...ServerOptions) *Server {
 
 	s.contextPool.New = func() any { return s.newContext() }
 	return s
+}
+
+// NewServerWithOptions creates a new HTTP server with functional options.
+// This allows for a more flexible configuration style using option functions.
+// Example:
+//
+//	s := rweb.NewServerWithOptions(
+//	    rweb.WithAddress(":8080"),
+//	    rweb.WithVerbose(),
+//	    rweb.WithTLS(":8443", "cert.pem", "key.pem"),
+//	)
+func NewServerWithOptions(options ...ServerOption) *Server {
+	// Initialize with default options
+	opts := ServerOptions{}
+
+	// Apply functional options
+	for _, option := range options {
+		option(&opts)
+	}
+
+	// Use NewServer with the built options
+	return NewServer(opts)
 }
 
 func (s *Server) AddMethod(method string, path string, handler Handler) {
@@ -210,7 +353,7 @@ func (s *Server) SetupSSE(ctx Context, eventChan <-chan any, eventTypeOption ...
 // SSEHandler is a convenience method that creates a handler function for Server-Sent Events of a certain type.
 // Note: SSEvent data from the source will override the event type set here.
 // The eventsChan parameter is the channel from which events will be sourced.
-// The optional eventName parameter specifies the event type (defaults to "message").
+// The optional eventType parameter specifies the event type (defaults to "message").
 // Usage: s.Get("/events", s.SSEHandler(eventsChan, "update"))
 func (s *Server) SSEHandler(eventsChan <-chan any, eventType ...string) Handler {
 	// Default to "message" event type if not specified
@@ -497,10 +640,15 @@ func (s *Server) Run() (err error) {
 			}
 		}
 
-		for { // maybe TODO optional graceful shutdown based on SIGTERM
+		for {
 			conn, err := listener.Accept() // accept next client connection
 			if err != nil {
-				if s.options.Debug { // TODO: check deeper into "use of closed network connection"
+				// When the listener is closed during shutdown, Accept returns net.ErrClosed.
+				// This is expected — break out of the loop to stop the goroutine cleanly.
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+				if s.options.Debug {
 					fmt.Println("Error accepting connection:", err)
 				}
 				continue
@@ -853,6 +1001,28 @@ func (s *Server) writeResponse(ctx *context, respWriter io.Writer) {
 }
 
 func (s *Server) sendSSE(ctx *context, respWriter io.Writer) (err error) {
+	// Run any registered cleanup when SSE streaming ends (e.g., SSEHub auto-unregister)
+	defer func() {
+		if ctx.sseCleanup != nil {
+			ctx.sseCleanup()
+		}
+	}()
+
+	// Detect client disconnect proactively by reading from the underlying connection.
+	// A read on a half-closed or fully-closed TCP connection returns immediately
+	// (EOF or error), giving us sub-second disconnect detection instead of waiting
+	// up to a full heartbeat interval (~25s) to discover a broken pipe on write.
+	connGone := make(chan struct{})
+	if ctx.conn != nil {
+		go func() {
+			buf := make([]byte, 1)
+			// Read blocks until the client closes or the conn is closed.
+			// We don't expect any incoming data on an SSE connection.
+			_, _ = ctx.conn.Read(buf)
+			close(connGone)
+		}()
+	}
+
 	// Send a connect event -- not required per SSE standard, but may be helpful
 	if s.options.SSECfg.SendConnectedEvent {
 		_, err = fmt.Fprint(respWriter, "event: message\ndata: Connected\n\n")
@@ -876,6 +1046,14 @@ func (s *Server) sendSSE(ctx *context, respWriter io.Writer) (err error) {
 	// Event Loop - until the input channel is closed or we exit
 	for {
 		select {
+		case <-connGone:
+			// Client disconnected — clean exit
+			if s.options.Verbose {
+				fmt.Printf("RWEB SSE client disconnected (conn closed), cleaning up channel: %v\n", ctx.sseEventsChan)
+			}
+			_ = rw.Flush()
+			return nil
+
 		case event, ok := <-ctx.sseEventsChan:
 			if !ok {
 				fmt.Println("SSE Channel closed and drained, let's clean up and exit...")
@@ -900,6 +1078,11 @@ func (s *Server) sendSSE(ctx *context, respWriter io.Writer) (err error) {
 
 			// Format and send the event
 			switch v := event.(type) {
+			case sseKeepalive:
+				// SSE comment — keeps the connection alive through proxies/LBs
+				// without triggering EventSource's onmessage handler
+				_, err = fmt.Fprint(rw, ":keepalive\n\n")
+				_ = v // use v to satisfy the compiler
 			case SSEvent: // get the eventName from the data (rweb.SSEvent) received
 				_, err = fmt.Fprintf(rw, "event: %s\ndata: %s\n\n", v.Type, v.Data)
 			case string:

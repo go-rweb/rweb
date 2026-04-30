@@ -72,6 +72,14 @@ type Context interface {
 	// the text/plain content-type header.
 	WriteText(string) error
 
+	// WriteHTMLBytes writes HTML content from bytes to the response with
+	// the text/html content-type header.
+	WriteHTMLBytes([]byte) error
+
+	// WriteTextBytes writes plain text from bytes to the response with
+	// the text/plain content-type header.
+	WriteTextBytes([]byte) error
+
 	// SetSSE configures Server-Sent Events for real-time data streaming.
 	// Takes a channel for events and an event name for the SSE protocol.
 	SetSSE(<-chan any, string) error
@@ -139,6 +147,10 @@ type Context interface {
 	// This is useful for advanced operations like protocol upgrades.
 	// Use with caution as it bypasses the framework's abstractions.
 	GetConn() net.Conn
+
+	// UserAgent returns the User-Agent header value from the request.
+	// Returns an empty string if the User-Agent header is not present.
+	UserAgent() string
 }
 
 // context is the concrete implementation of the Context interface.
@@ -158,6 +170,8 @@ type context struct {
 	sseEventsChan <-chan any
 	// Event name used in SSE protocol (e.g., "message", "update")
 	sseEventName string
+	// Cleanup callback invoked when sendSSE exits (used by SSEHub for auto-unregister)
+	sseCleanup func()
 	// Request-scoped key-value storage for passing data between handlers
 	data map[string]any
 	// Parsed cookies from request (lazy-loaded)
@@ -196,9 +210,11 @@ func (ctx *context) Clean() {
 	// Cleanup any multipart form data (releases file handles)
 	ctx.request.CleanupMultipartForm()
 
-	// Clear custom data map but keep it allocated if it exists
+	// Clear custom data map but keep it allocated for reuse
 	if ctx.data != nil {
-		ctx.data = make(map[string]any)
+		for k := range ctx.data {
+			delete(ctx.data, k)
+		}
 	}
 
 	// Reset cookie state
@@ -209,6 +225,11 @@ func (ctx *context) Clean() {
 			delete(ctx.parsedCookies, k)
 		}
 	}
+
+	// Reset SSE state
+	ctx.sseCleanup = nil
+	ctx.sseEventsChan = nil
+	ctx.sseEventName = ""
 
 	// Reset WebSocket state
 	ctx.wsUpgraded = false
@@ -347,6 +368,22 @@ func (ctx *context) WriteHTML(body string) error {
 // Use this for returning simple text responses.
 func (ctx *context) WriteText(body string) error {
 	_, er := ctx.response.WriteText(body)
+	return er
+}
+
+// WriteHTMLBytes writes HTML content from bytes to the response.
+// It automatically sets the Content-Type header to "text/html; charset=utf-8".
+// Use this for returning HTML from []byte to avoid string conversion overhead.
+func (ctx *context) WriteHTMLBytes(body []byte) error {
+	_, er := ctx.response.WriteHTMLBytes(body)
+	return er
+}
+
+// WriteTextBytes writes plain text from bytes to the response.
+// It automatically sets the Content-Type header to "text/plain; charset=utf-8".
+// Use this for returning text from []byte to avoid string conversion overhead.
+func (ctx *context) WriteTextBytes(body []byte) error {
+	_, er := ctx.response.WriteTextBytes(body)
 	return er
 }
 
@@ -622,4 +659,18 @@ func (ctx *context) IsWebSocketUpgrade() bool {
 // This should be used with caution as it bypasses the framework's abstractions.
 func (ctx *context) GetConn() net.Conn {
 	return ctx.conn
+}
+
+// UserAgent returns the User-Agent header value from the request.
+// This method performs case-insensitive header matching to handle variations
+// like "User-Agent", "user-agent", or "USER-AGENT".
+// Returns an empty string if the User-Agent header is not present.
+func (ctx *context) UserAgent() string {
+	// Perform case-insensitive search through headers
+	for _, header := range ctx.request.headers {
+		if strings.EqualFold(header.Key, "User-Agent") {
+			return header.Value
+		}
+	}
+	return ""
 }

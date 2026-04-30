@@ -1,10 +1,10 @@
 module admin_svr
 
-go 1.23
+go 1.23.0
 
-require github.com/go-rweb/rweb master
+require github.com/go-rweb/rweb v0.1.21-0.20251008005009-cbd9c8e1482c
 
 require (
-	github.com/go-element/element v0.5.5-0.20250730211845-a097f2feeb11 // indirect
-	github.com/go-serr/serr master // indirect
+	github.com/go-element/element v0.5.5-0.20250924223137-506625d78bfc // indirect
+	github.com/go-serr/serr v1.3.0 // indirect
 )

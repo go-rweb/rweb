@@ -51,8 +51,8 @@ func TestGet(t *testing.T) {
 
 		<-readyChan // wait for server
 
-		// Also testing localhost short URL here
-		resp, err := http.Get(fmt.Sprintf("http://:%s", s.GetListenPort()))
+		// Use full localhost URL for compatibility
+		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%s", s.GetListenPort()))
 		assert.Nil(t, err)
 		assert.Equal(t, resp.Status, consts.OK200)
 
